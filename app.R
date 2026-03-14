@@ -159,6 +159,23 @@ ui <- dashboardPage(
                     p("3. Click the corresponding analysis button."),
                     p("4. Results will appear in the tables and graphs automatically."),
                     br(),
+                    
+                    # NUEVA SECCIÓN: EXPLICACIÓN DE LA MUESTRA
+                    h4("Understanding the data: Sample vs. Full database"),
+                    p(strong("Panel A (Drug Safety) uses a sample of 500 reports.")),
+                    tags$ul(
+                      tags$li("To ensure fast response times, the FDA API limits data retrieval. This application downloads the ", strong("500 most recent reports"), " for the selected drug."),
+                      tags$li("The numbers shown (e.g., '12 cases' for a reaction) represent counts within ", strong("this sample of 500 reports"), ", not the entire FDA database."),
+                      tags$li("For example, a drug like ibuprofen may have over 10,000 reports in total, but we only analyze the most recent 500 to keep the app responsive."),
+                      tags$li("The ", strong("percentages and rankings"), " (top causes) are generally representative of the full dataset, but absolute numbers should be interpreted as ", strong("sample counts, not population totals."))
+                    ),
+                    p(strong("Panel B (Syndrome Analysis) uses global counts.")),
+                    tags$ul(
+                      tags$li("For ROR calculations, the application uses ", strong("global totals from the entire FDA database"), " to ensure statistical accuracy."),
+                      tags$li("However, the drug list is limited to the ", strong("top 10 most frequently reported drugs"), " for that syndrome to keep calculation time reasonable.")
+                    ),
+                    br(),
+                    
                     h4("Performance notes"),
                     p(strong("Please be patient:")),
                     tags$ul(
@@ -168,10 +185,11 @@ ui <- dashboardPage(
                       tags$li("Do not click the button multiple times — the application will notify you when it is ready.")
                     ),
                     br(),
+                    
                     h4("Example search terms (guaranteed to work)"),
                     p("Try these terms to see immediate results:"),
                     tags$ul(
-                      tags$li(strong("Panel A (drugs):"), " ROSIGLITAZONE, IBUPROFEN (or ACETAMINOPHEN), ATORVASTATIN"),
+                      tags$li(strong("Panel A (drugs):"), " ROSIGLITAZONE, IBUPROFEN, ACETAMINOPHEN, ATORVASTATIN"),
                       tags$li(strong("Panel B (reactions):"), " STEVENS-JOHNSON SYNDROME, HEPATIC FAILURE, CARDIAC ARREST")
                     ),
                     br(),
@@ -191,14 +209,14 @@ ui <- dashboardPage(
                     actionButton("run_drug", "Analyze drug", class = "btn-primary btn-block"),
                     br(),
                     helpText("Examples: ROSIGLITAZONE, IBUPROFEN, ATORVASTATIN"),
-                    helpText(strong("Note:"), "Analysis may take 15-30 seconds. Please wait for the progress bar.")
+                    helpText(strong("Note:"), "Analysis based on 500 most recent reports. Wait for progress bar.")
                 ),
                 box(width = 8, title = "Hospitalization demographics", status = "info", solidHeader = TRUE,
                     plotlyOutput("demo_plot")
                 )
               ),
               fluidRow(
-                box(width = 12, title = "Top 10 causes of hospitalization", status = "warning", solidHeader = TRUE,
+                box(width = 12, title = "Top 10 causes of hospitalization (based on sample of 500 reports)", status = "warning", solidHeader = TRUE,
                     DTOutput("top_rx_table")
                 )
               )
@@ -214,7 +232,7 @@ ui <- dashboardPage(
                     hr(),
                     helpText("Use British English (e.g., use DIARRHOEA, not DIARRHEA)."),
                     helpText("Examples: STEVENS-JOHNSON SYNDROME, HEPATIC FAILURE, CARDIAC ARREST"),
-                    helpText(strong("Note:"), "Analysis may take 20-30 seconds. Please wait for the progress bar."),
+                    helpText(strong("Note:"), "Analysis uses global counts but limits to top 10 drugs. Wait for progress bar."),
                     uiOutput("meddra_link")
                 ),
                 box(width = 8, title = "Reporting Odds Ratio (ROR) signals", status = "danger", solidHeader = TRUE,
@@ -270,9 +288,9 @@ server <- function(input, output, session) {
     dt_clean <- dt[sex != "Unknown" & age_grp != "Unknown"]
     
     plot_ly(dt_clean, x = ~age_grp, y = ~cases, color = ~sex, type = 'bar', barmode = 'group') %>%
-      layout(title = "Hospitalized patients by age and sex",
+      layout(title = "Hospitalized patients by age and sex (sample of 500 reports)",
              xaxis = list(title = "Age group"),
-             yaxis = list(title = "Number of cases"))
+             yaxis = list(title = "Number of cases in sample"))
   })
   
   # Render Top Reactions Table (DT)
@@ -280,7 +298,7 @@ server <- function(input, output, session) {
     req(drug_data())
     datatable(drug_data()$top, 
               options = list(pageLength = 10, dom = 't'),
-              colnames = c("Reaction (MedDRA PT)", "Local sample cases"))
+              colnames = c("Reaction (MedDRA PT)", "Cases in sample (n=500)"))
   })
   
   # Reactive execution for Panel B with button disabling
