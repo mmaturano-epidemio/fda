@@ -1,8 +1,3 @@
----
-title: "Untitled"
-output: html_document
-date: "2026-03-14"
----
 # OpenFDA Pharmacovigilance Dashboard
 
 This application provides real-time safety signal detection using the OpenFDA API. It is designed for epidemiologists to evaluate drug-event associations.
