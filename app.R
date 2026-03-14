@@ -5,6 +5,7 @@ library(jsonlite)
 library(data.table)
 library(plotly)
 library(DT) 
+library(shinyjs)
 
 # ==============================================================================
 # 1. CORE API ENGINE & UTILITIES
@@ -127,29 +128,77 @@ ui <- dashboardPage(
   
   dashboardSidebar(
     sidebarMenu(
+      menuItem("Welcome / Instructions", tabName = "welcome", icon = icon("info-circle")),
       menuItem("Panel A: Drug Safety", tabName = "panel_a", icon = icon("pills")),
       menuItem("Panel B: Syndrome Analysis", tabName = "panel_b", icon = icon("heartbeat"))
     )
   ),
   
   dashboardBody(
-    # Custom CSS for validation errors
-    tags$head(tags$style(HTML(".shiny-output-error-validation { color: #d9534f; font-weight: bold; }"))),
+    # Custom CSS for validation errors and progress
+    tags$head(tags$style(HTML("
+      .shiny-output-error-validation { color: #d9534f; font-weight: bold; }
+      .progress-bar { background-color: #337ab7; }
+    "))),
     
     tabItems(
+      # WELCOME / INSTRUCTIONS TAB
+      tabItem(tabName = "welcome",
+              fluidRow(
+                box(width = 12, title = "About this application", status = "primary", solidHeader = TRUE,
+                    p("This tool allows exploration of pharmacovigilance data from the openFDA database."),
+                    p("It provides two complementary analyses:"),
+                    tags$ul(
+                      tags$li(strong("Panel A (Drug Safety):"), " Enter a drug name to see demographic characteristics of hospitalized patients and the top 10 adverse reactions associated with those hospitalizations."),
+                      tags$li(strong("Panel B (Syndrome Analysis):"), " Enter an adverse reaction (syndrome) to calculate the Reporting Odds Ratio (ROR) for the most frequently reported drugs, helping to identify potential safety signals.")
+                    ),
+                    br(),
+                    h4("How to use"),
+                    p("1. Navigate to the desired panel using the sidebar menu."),
+                    p("2. Type the search term in the text box (use uppercase and the exact name; for reactions, British English is preferred)."),
+                    p("3. Click the corresponding analysis button."),
+                    p("4. Results will appear in the tables and graphs automatically."),
+                    br(),
+                    h4("Performance notes"),
+                    p(strong("Please be patient:")),
+                    tags$ul(
+                      tags$li("Each query contacts the FDA openAPI server, downloads data, and processes it in real time."),
+                      tags$li("Typical waiting time is ", strong("15-30 seconds"), " depending on the complexity of the analysis and server response."),
+                      tags$li("A progress bar will show the current step (downloading, processing, calculating)."),
+                      tags$li("Do not click the button multiple times — the application will notify you when it is ready.")
+                    ),
+                    br(),
+                    h4("Example search terms (guaranteed to work)"),
+                    p("Try these terms to see immediate results:"),
+                    tags$ul(
+                      tags$li(strong("Panel A (drugs):"), " SERTRALINE, IBUPROFEN (or ACETAMINOPHEN), ATORVASTATIN"),
+                      tags$li(strong("Panel B (reactions):"), " STEVENS-JOHNSON SYNDROME, DIARRHOEA, RHABDOMYOLYSIS")
+                    ),
+                    br(),
+                    p("If you are unsure about the exact MedDRA term for a reaction, you can search it in the ",
+                      a("MedDRA Web-Based Browser", href = "https://www.meddra.org/how-to-use/tools/web-based-browser", target = "_blank"),
+                      ". Always use the English term.")
+                )
+              )
+      ),
+      
       # PANEL A TAB
       tabItem(tabName = "panel_a",
               fluidRow(
-                box(width = 4, title = "Search Parameter", status = "primary", solidHeader = TRUE,
-                    textInput("drug_input", "Enter Generic Drug Name:", value = "IBUPROFEN"),
-                    actionButton("run_drug", "Analyze Drug", class = "btn-primary btn-block")
+                box(width = 4, title = "Search parameters", status = "primary", solidHeader = TRUE,
+                    textInput("drug_input", "Generic drug name:", 
+                              value = "SERTRALINE", placeholder = "e.g., SERTRALINE"),
+                    actionButton("run_drug", "Analyze drug", class = "btn-primary btn-block"),
+                    br(),
+                    helpText("Examples: SERTRALINE, IBUPROFEN, ATORVASTATIN"),
+                    helpText(strong("Note:"), "Analysis may take 15-30 seconds. Please wait for the progress bar.")
                 ),
-                box(width = 8, title = "Hospitalization Demographics", status = "info", solidHeader = TRUE,
+                box(width = 8, title = "Hospitalization demographics", status = "info", solidHeader = TRUE,
                     plotlyOutput("demo_plot")
                 )
               ),
               fluidRow(
-                box(width = 12, title = "Top 10 Causes of Hospitalization", status = "warning", solidHeader = TRUE,
+                box(width = 12, title = "Top 10 causes of hospitalization", status = "warning", solidHeader = TRUE,
                     DTOutput("top_rx_table")
                 )
               )
@@ -158,14 +207,17 @@ ui <- dashboardPage(
       # PANEL B TAB
       tabItem(tabName = "panel_b",
               fluidRow(
-                box(width = 4, title = "Search Parameter", status = "danger", solidHeader = TRUE,
-                    textInput("syndrome_input", "Enter Syndrome/Reaction:", value = "STEVENS-JOHNSON SYNDROME"),
-                    actionButton("run_syndrome", "Identify Culprits", class = "btn-danger btn-block"),
+                box(width = 4, title = "Search parameters", status = "danger", solidHeader = TRUE,
+                    textInput("syndrome_input", "Syndrome / adverse reaction:", 
+                              value = "STEVENS-JOHNSON SYNDROME", placeholder = "e.g., DIARRHOEA"),
+                    actionButton("run_syndrome", "Identify culprit drugs", class = "btn-danger btn-block"),
                     hr(),
-                    helpText("Hint: Use British English (e.g., Diarrhoea)."),
+                    helpText("Use British English (e.g., Diarrhoea, not Diarrhea)."),
+                    helpText("Examples: STEVENS-JOHNSON SYNDROME, DIARRHOEA, RHABDOMYOLYSIS"),
+                    helpText(strong("Note:"), "Analysis may take 20-30 seconds. Please wait for the progress bar."),
                     uiOutput("meddra_link")
                 ),
-                box(width = 8, title = "Reporting Odds Ratio (ROR) Signals", status = "danger", solidHeader = TRUE,
+                box(width = 8, title = "Reporting Odds Ratio (ROR) signals", status = "danger", solidHeader = TRUE,
                     DTOutput("ror_table")
                 )
               )
@@ -185,11 +237,29 @@ server <- function(input, output, session) {
     tagList("Check terms at:", a("MedDRA Web Search", href="https://www.meddra.org/how-to-use/tools/web-based-browser", target="_blank"))
   })
   
-  # Reactive execution for Panel A
+  # Reactive execution for Panel A with button disabling
   drug_data <- eventReactive(input$run_drug, {
-    withProgress(message = 'Fetching FDA Data...', value = 0.5, {
-      analyze_drug_safety(toupper(trimws(input$drug_input)))
+    # Disable the button during execution
+    shinyjs::disable("run_drug")
+    
+    withProgress(message = 'Processing request...', value = 0, {
+      
+      incProgress(0.2, detail = "Contacting FDA API...")
+      Sys.sleep(0.5)  # Small pause to show progress
+      
+      incProgress(0.4, detail = "Downloading drug safety data...")
+      result <- analyze_drug_safety(toupper(trimws(input$drug_input)))
+      
+      incProgress(0.8, detail = "Processing demographics and reactions...")
+      Sys.sleep(0.5)
+      
+      incProgress(1, detail = "Done")
     })
+    
+    # Re-enable the button
+    shinyjs::enable("run_drug")
+    
+    result
   })
   
   # Render Demographics Plot (Plotly)
@@ -200,24 +270,45 @@ server <- function(input, output, session) {
     dt_clean <- dt[sex != "Unknown" & age_grp != "Unknown"]
     
     plot_ly(dt_clean, x = ~age_grp, y = ~cases, color = ~sex, type = 'bar', barmode = 'group') %>%
-      layout(title = "Hospitalized Patients by Age and Sex",
-             xaxis = list(title = "Age Group"),
-             yaxis = list(title = "Number of Cases"))
+      layout(title = "Hospitalized patients by age and sex",
+             xaxis = list(title = "Age group"),
+             yaxis = list(title = "Number of cases"))
   })
   
   # Render Top Reactions Table (DT)
   output$top_rx_table <- renderDT({
     req(drug_data())
     datatable(drug_data()$top, 
-              options = list(pageLength = 5, dom = 't'),
-              colnames = c("Reaction (MedDRA PT)", "Local Sample Cases"))
+              options = list(pageLength = 10, dom = 't'),
+              colnames = c("Reaction (MedDRA PT)", "Local sample cases"))
   })
   
-  # Reactive execution for Panel B
+  # Reactive execution for Panel B with button disabling
   syndrome_data <- eventReactive(input$run_syndrome, {
-    withProgress(message = 'Calculating ROR Signals...', value = 0.5, {
-      analyze_syndrome_panel_b(toupper(trimws(input$syndrome_input)))
+    # Disable the button during execution
+    shinyjs::disable("run_syndrome")
+    
+    withProgress(message = 'Processing request...', value = 0, {
+      
+      incProgress(0.1, detail = "Contacting FDA API...")
+      Sys.sleep(0.5)
+      
+      incProgress(0.3, detail = "Identifying top drugs for this syndrome...")
+      # First API call happens inside analyze_syndrome_panel_b
+      
+      incProgress(0.6, detail = "Calculating ROR for each drug (this may take a while)...")
+      result <- analyze_syndrome_panel_b(toupper(trimws(input$syndrome_input)))
+      
+      incProgress(0.9, detail = "Formatting results...")
+      Sys.sleep(0.5)
+      
+      incProgress(1, detail = "Done")
     })
+    
+    # Re-enable the button
+    shinyjs::enable("run_syndrome")
+    
+    result
   })
   
   # Render Culprit ROR Table (DT)
@@ -228,11 +319,13 @@ server <- function(input, output, session) {
     datatable(dt,
               rownames = FALSE,
               options = list(pageLength = 10, dom = 'tp'),
-              colnames = c("Suspect Drug", "Global Cases", "ROR", "Lower 95% CI", "Upper 95% CI")) %>%
+              colnames = c("Suspect drug", "Global cases", "ROR", "Lower 95% CI", "Upper 95% CI")) %>%
       formatStyle('ror', 
                   backgroundColor = styleInterval(c(2, 5), c('white', 'lightyellow', '#ffcccc')))
   })
 }
 
-# Run the application 
+
+options(shiny.error = traceback)
+
 shinyApp(ui = ui, server = server)
