@@ -212,7 +212,7 @@ ui <- dashboardPage(
                               value = "STEVENS-JOHNSON SYNDROME", placeholder = "e.g., HEPATIC FAILURE"),
                     actionButton("run_syndrome", "Identify culprit drugs", class = "btn-danger btn-block"),
                     hr(),
-                    helpText("Use British English (e.g., HEPATIC FAILURE, not Diarrhea)."),
+                    helpText("Use British English (e.g., use DIARRHOEA, not DIARRHEA)."),
                     helpText("Examples: STEVENS-JOHNSON SYNDROME, HEPATIC FAILURE, CARDIAC ARREST"),
                     helpText(strong("Note:"), "Analysis may take 20-30 seconds. Please wait for the progress bar."),
                     uiOutput("meddra_link")
