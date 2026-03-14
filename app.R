@@ -171,8 +171,8 @@ ui <- dashboardPage(
                     h4("Example search terms (guaranteed to work)"),
                     p("Try these terms to see immediate results:"),
                     tags$ul(
-                      tags$li(strong("Panel A (drugs):"), " SERTRALINE, IBUPROFEN (or ACETAMINOPHEN), ATORVASTATIN"),
-                      tags$li(strong("Panel B (reactions):"), " STEVENS-JOHNSON SYNDROME, DIARRHOEA, RHABDOMYOLYSIS")
+                      tags$li(strong("Panel A (drugs):"), " ROSIGLITAZONE, IBUPROFEN (or ACETAMINOPHEN), ATORVASTATIN"),
+                      tags$li(strong("Panel B (reactions):"), " STEVENS-JOHNSON SYNDROME, HEPATIC FAILURE, CARDIAC ARREST")
                     ),
                     br(),
                     p("If you are unsure about the exact MedDRA term for a reaction, you can search it in the ",
@@ -187,10 +187,10 @@ ui <- dashboardPage(
               fluidRow(
                 box(width = 4, title = "Search parameters", status = "primary", solidHeader = TRUE,
                     textInput("drug_input", "Generic drug name:", 
-                              value = "SERTRALINE", placeholder = "e.g., SERTRALINE"),
+                              value = "ROSIGLITAZONE", placeholder = "e.g., ROSIGLITAZONE"),
                     actionButton("run_drug", "Analyze drug", class = "btn-primary btn-block"),
                     br(),
-                    helpText("Examples: SERTRALINE, IBUPROFEN, ATORVASTATIN"),
+                    helpText("Examples: ROSIGLITAZONE, IBUPROFEN, ATORVASTATIN"),
                     helpText(strong("Note:"), "Analysis may take 15-30 seconds. Please wait for the progress bar.")
                 ),
                 box(width = 8, title = "Hospitalization demographics", status = "info", solidHeader = TRUE,
@@ -209,11 +209,11 @@ ui <- dashboardPage(
               fluidRow(
                 box(width = 4, title = "Search parameters", status = "danger", solidHeader = TRUE,
                     textInput("syndrome_input", "Syndrome / adverse reaction:", 
-                              value = "STEVENS-JOHNSON SYNDROME", placeholder = "e.g., DIARRHOEA"),
+                              value = "STEVENS-JOHNSON SYNDROME", placeholder = "e.g., HEPATIC FAILURE"),
                     actionButton("run_syndrome", "Identify culprit drugs", class = "btn-danger btn-block"),
                     hr(),
-                    helpText("Use British English (e.g., Diarrhoea, not Diarrhea)."),
-                    helpText("Examples: STEVENS-JOHNSON SYNDROME, DIARRHOEA, RHABDOMYOLYSIS"),
+                    helpText("Use British English (e.g., HEPATIC FAILURE, not Diarrhea)."),
+                    helpText("Examples: STEVENS-JOHNSON SYNDROME, HEPATIC FAILURE, CARDIAC ARREST"),
                     helpText(strong("Note:"), "Analysis may take 20-30 seconds. Please wait for the progress bar."),
                     uiOutput("meddra_link")
                 ),
