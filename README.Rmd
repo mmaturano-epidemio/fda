@@ -3,7 +3,7 @@
 This application provides real-time safety signal detection using the OpenFDA API. It is designed for epidemiologists to evaluate drug-event associations.
 
 ## Features
-- **Panel A:** Visualizes demographics of hospitalized patients and calculates the **Reporting Odds Ratio (ROR)** for top reactions.
+- **Panel A:** Visualizes demographics of hospitalized patients.
 - **Panel B:** Identifies "culprit" drugs for a specific medical syndrome based on global disproportionality analysis.
 
 ## Getting Started
