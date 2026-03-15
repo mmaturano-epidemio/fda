@@ -16,12 +16,4 @@ This application provides real-time safety signal detection using the OpenFDA AP
 - **Key Libraries:** `shiny`, `data.table` (for high-performance processing), `plotly` (interactive charts), `httr` (API requests).
 
 ## Demo Examples for Evaluators
-To test the application's signal detection capabilities, please try the following searches:
-
-1. **Panel A (Drug Safety):** - Search for `IBUPROFEN`. Look for "Gastric Ulcer" in the top causes table. You should see a Reporting Odds Ratio (ROR) significantly above 1.0, indicating a known safety signal.
-   - Search for `PARACETAMOL`. Note the demographic distribution; it often shows a high volume of reports across all age groups.
-
-2. **Panel B (Syndrome Analysis):** - Search for `STEVENS-JOHNSON SYNDROME`. The app will query the global database to identify the drugs most frequently associated with this severe reaction.
-   - Search for `TENDON RUPTURE`. You will likely see Fluoroquinolones (like Ciprofloxacin) appear with significant ROR values.
-
-*Note: Please use generic names and British English spelling (e.g., 'Paracetamol' instead of 'Acetaminophen') as required by the MedDRA terminology used by the FDA.*
+To test the application's signal detection capabilities, please try the example searches offered in each panel, they are pre-tested to work properly.
